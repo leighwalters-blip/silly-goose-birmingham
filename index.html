@@ -528,46 +528,58 @@ frameborder="1"
         window.frames["iframe"].location = url;
     }
 
+    // === Game Sound System (Web Audio API, bypasses pygame mixer for iOS) ===
+    var _gameAudioCtx = null;
+    var _gameAudioBuffers = {};
+    var _gameAudioReady = false;
+
+    function initGameAudio() {
+        if (_gameAudioCtx) return;
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        _gameAudioCtx = new Ctx();
+        var names = ['glug', 'stick_hit', 'metal_crash', 'squeak'];
+        names.forEach(function(name) {
+            fetch(name + '.wav')
+                .then(function(r) { return r.arrayBuffer(); })
+                .then(function(buf) { return _gameAudioCtx.decodeAudioData(buf); })
+                .then(function(decoded) {
+                    _gameAudioBuffers[name] = decoded;
+                    console.log('Sound loaded: ' + name);
+                })
+                .catch(function(e) { console.warn('Sound load failed: ' + name, e); });
+        });
+        _gameAudioReady = true;
+    }
+
+    window.playGameSound = function(name) {
+        if (!_gameAudioCtx) initGameAudio();
+        if (!_gameAudioBuffers[name]) return;
+        if (_gameAudioCtx.state === 'suspended') {
+            _gameAudioCtx.resume();
+        }
+        try {
+            var source = _gameAudioCtx.createBufferSource();
+            source.buffer = _gameAudioBuffers[name];
+            source.connect(_gameAudioCtx.destination);
+            source.start(0);
+        } catch(e) {
+            console.warn('Sound play failed: ' + name, e);
+        }
+    };
+
     function unlockAudio() {
-        if (typeof Module !== 'undefined' && Module.SDL2 && Module.SDL2.audioContext) {
-            Module.SDL2.audioContext.resume();
-        }
-        if (typeof SDL !== 'undefined' && SDL.audioContext) {
-            SDL.audioContext.resume();
-        }
-        if (window._audioContexts) {
-            window._audioContexts.forEach(function(c) {
-                if (c.state === 'suspended') c.resume();
+        if (!_gameAudioCtx) initGameAudio();
+        if (_gameAudioCtx && _gameAudioCtx.state === 'suspended') {
+            _gameAudioCtx.resume().then(function() {
+                console.log('AudioContext resumed');
             });
         }
     }
 
-    (function() {
-        window._audioContexts = [];
-        var OrigCtx = window.AudioContext || window.webkitAudioContext;
-        if (!OrigCtx) return;
-        var ProxiedCtx = function() {
-            var ctx = new OrigCtx();
-            window._audioContexts.push(ctx);
-            return ctx;
-        };
-        ProxiedCtx.prototype = OrigCtx.prototype;
-        window.AudioContext = ProxiedCtx;
-        if (window.webkitAudioContext) window.webkitAudioContext = ProxiedCtx;
-    })();
-
-    document.addEventListener('touchstart', function() {
-        unlockAudio();
-        setTimeout(unlockAudio, 500);
-        setTimeout(unlockAudio, 1500);
-        setTimeout(unlockAudio, 3000);
-    }, {passive: true});
-    document.addEventListener('click', function() {
-        unlockAudio();
-        setTimeout(unlockAudio, 500);
-        setTimeout(unlockAudio, 1500);
-        setTimeout(unlockAudio, 3000);
-    }, {passive: true});
+    document.addEventListener('touchstart', unlockAudio, {passive: true});
+    document.addEventListener('touchend', unlockAudio, {passive: true});
+    document.addEventListener('click', unlockAudio, {passive: true});
 
     </script>
 
