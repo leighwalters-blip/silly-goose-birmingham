@@ -377,7 +377,6 @@ height="1px"
     " onclick="
         this.style.display='none';
         if(window.MM && !window.MM.UME) window.MM.UME = 1;
-        window.__audioUnlocked = true;
         unlockAudio();
     ">
         <div style="color: #FFD700; font-family: Arial, sans-serif; font-size: 42px; font-weight: bold; text-align: center; margin-bottom: 20px; text-shadow: 2px 2px 8px rgba(0,0,0,0.5);">
@@ -529,25 +528,13 @@ frameborder="1"
         window.frames["iframe"].location = url;
     }
 
-    // iOS/Safari audio unlock - resume all AudioContexts on user gesture
     function unlockAudio() {
-        // Resume any existing AudioContext instances
-        var ctx = window.AudioContext || window.webkitAudioContext;
-        if (ctx) {
-            // Find and resume SDL's audio context
-            if (typeof Module !== 'undefined' && Module.SDL2 && Module.SDL2.audioContext) {
-                Module.SDL2.audioContext.resume();
-            }
-            // Also try the global audio context that Emscripten creates
-            if (typeof SDL !== 'undefined' && SDL.audioContext) {
-                SDL.audioContext.resume();
-            }
+        if (typeof Module !== 'undefined' && Module.SDL2 && Module.SDL2.audioContext) {
+            Module.SDL2.audioContext.resume();
         }
-        // Resume ALL AudioContexts by monkey-patching
-        document.querySelectorAll('audio, video').forEach(function(el) {
-            el.play().catch(function(){});
-        });
-        // Brute force: find any suspended contexts
+        if (typeof SDL !== 'undefined' && SDL.audioContext) {
+            SDL.audioContext.resume();
+        }
         if (window._audioContexts) {
             window._audioContexts.forEach(function(c) {
                 if (c.state === 'suspended') c.resume();
@@ -555,7 +542,6 @@ frameborder="1"
         }
     }
 
-    // Track all created AudioContexts
     (function() {
         window._audioContexts = [];
         var OrigCtx = window.AudioContext || window.webkitAudioContext;
@@ -570,17 +556,18 @@ frameborder="1"
         if (window.webkitAudioContext) window.webkitAudioContext = ProxiedCtx;
     })();
 
-    // Also unlock on any touch/click during gameplay
-    var _audioUnlockHandler = function() {
+    document.addEventListener('touchstart', function() {
         unlockAudio();
-        // Keep trying for a bit since the context may be created later
         setTimeout(unlockAudio, 500);
         setTimeout(unlockAudio, 1500);
         setTimeout(unlockAudio, 3000);
-    };
-    document.addEventListener('touchstart', _audioUnlockHandler, {once: false, passive: true});
-    document.addEventListener('touchend', _audioUnlockHandler, {once: false, passive: true});
-    document.addEventListener('click', _audioUnlockHandler, {once: false, passive: true});
+    }, {passive: true});
+    document.addEventListener('click', function() {
+        unlockAudio();
+        setTimeout(unlockAudio, 500);
+        setTimeout(unlockAudio, 1500);
+        setTimeout(unlockAudio, 3000);
+    }, {passive: true});
 
     </script>
 
