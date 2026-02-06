@@ -1,6 +1,7 @@
 import pygame
 from settings import BALL_HIT_SPEED, BALL_FRICTION, BALL_GRAVITY
 from graphics.colors import BALL_WHITE
+from engine.sounds import play as play_sound
 
 
 class HockeyBall:
@@ -20,6 +21,7 @@ class HockeyBall:
         self.vel_x = BALL_HIT_SPEED * direction
         self.vel_y = -BALL_HIT_SPEED * 0.4
         self.on_ground = False
+        play_sound("stick_hit")
 
     def update(self, dt, tiles):
         # Gravity

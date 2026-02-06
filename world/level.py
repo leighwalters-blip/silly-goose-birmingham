@@ -7,12 +7,13 @@ from entities.rat import Rat
 from entities.collectible import Collectible
 from entities.hockey_ball import HockeyBall
 from entities.goal import Goal
+from entities.trash_can import TrashCan
 
 
 # Legend for level maps:
 # . = empty    G = ground    P = platform    B = brick    K = kerb
 # S = player start    R = rat    b = beer    c = cider
-# H = hockey ball    X = goal
+# H = hockey ball    X = goal    T = trash can
 
 LEVEL_MAPS = [
     # Level 1 - The Digbeth Run
@@ -22,14 +23,14 @@ LEVEL_MAPS = [
         "........................................",
         "........................................",
         "........................................",
-        "...........b....b..........c............",
-        "..........PPP..PPP........PPP...........",
-        "....b.........................b...c.....",
-        "...PPP.............R.........PPPPPP.....",
-        "...............b.......b................",
-        "..............PPP.....PPP..........X....",
-        ".....R...............................H..",
-        "S...........R...............R...........",
+        "...........b....b..........c...........",
+        "..........PPP..PPP........PPP..........",
+        "....b.........................b...c....",
+        "...PPP.............R.........PPPPPP....",
+        "...............b.......b...............",
+        "..............PPP.....PPP..............",
+        ".....R............................R....",
+        "S.....T........R....T......H.....X....",
         "GGKGGGGGGKGGGGGGGGKGGGGGGKGGGGGGGKGGGGG",
         "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
     ],
@@ -40,14 +41,14 @@ LEVEL_MAPS = [
         "..................................c.....",
         ".................................PPP....",
         "........................................",
-        "....c.........b.....b...................",
+        "....c.........b.....b.................",
         "...PPP......PPP....PPP......PPP........",
         "........................................",
-        "...........R..............R.....b..X....",
+        "...........R..............R.....b.......",
         "..b............................PPPPPP...",
         ".PPP...........b......c................",
-        "..............PPP....PPP......H.........",
-        ".....R...............R......R...........",
+        "..............PPP....PPP...............",
+        "S....R...T...........R..T.R.H.....X...",
         "GGKGGGGGGKGGGGBBBGGKGGGGGGKGGGGGGGKGGGG",
         "GGGGGGGGGGGGGGBBBGGGGGGGGGGGGGGGGGGGGGG",
     ],
@@ -61,11 +62,11 @@ LEVEL_MAPS = [
         "......................b....PPP..........",
         ".....b..............PPP.................",
         "....PPP......R.........................",
-        ".............PPPP.........b.....X......",
-        "..........................PPP..PPPP....",
+        ".............PPPP.........b............",
+        "..........................PPP...........",
         "..R...........R.....R..................",
-        "......b.............H......H...........",
-        "....PPP.........R........R.....R.......",
+        "......b.................................",
+        "S..TPPP.....T...R.....T.R.H..H...X...",
         "GGKGGGGKGGGGGGKGGGGBBKGGGGGGKGGGGGKGGGG",
         "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
     ],
@@ -109,10 +110,14 @@ class Level:
                     self.entities.append(Collectible(wx + 12, wy + 10, "beer"))
                 elif char == 'c':
                     self.entities.append(Collectible(wx + 12, wy + 10, "cider"))
+                elif char == 'T':
+                    self.entities.append(TrashCan(wx + 10, wy + TILE_SIZE - TrashCan.HEIGHT))
                 elif char == 'H':
                     self.entities.append(HockeyBall(wx + TILE_SIZE // 2, wy + TILE_SIZE - 8))
                 elif char == 'X':
-                    self.entities.append(Goal(wx, wy - TILE_SIZE))
+                    # Goal sits on ground: bottom of goal aligns with bottom of this row
+                    goal_y = wy + TILE_SIZE - Goal.HEIGHT
+                    self.entities.append(Goal(wx, goal_y))
 
     def update(self, dt, input_handler):
         # Update player
@@ -121,12 +126,18 @@ class Level:
         # Update entities
         for entity in self.entities:
             if hasattr(entity, 'update'):
-                if isinstance(entity, Rat):
-                    entity.update(dt, self.tiles)
-                elif isinstance(entity, HockeyBall):
+                if isinstance(entity, (Rat, HockeyBall, TrashCan)):
                     entity.update(dt, self.tiles)
                 else:
                     entity.update(dt)
+
+        # Check if hockey ball hit a goal
+        balls = [e for e in self.entities if isinstance(e, HockeyBall)]
+        goals = [e for e in self.entities if isinstance(e, Goal)]
+        for ball in balls:
+            for goal in goals:
+                if not goal.reached and ball.rect.colliderect(goal.rect):
+                    goal.reach_goal(self.game)
 
         # Remove dead collectibles
         self.entities = [e for e in self.entities

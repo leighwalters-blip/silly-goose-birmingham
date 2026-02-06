@@ -5,6 +5,7 @@ from graphics.colors import (
     BEER_AMBER, BEER_FOAM, BEER_GLASS,
     CIDER_GREEN, CIDER_DARK_GREEN, CIDER_GOLD_CAP
 )
+from engine.sounds import play as play_sound
 
 
 class Collectible:
@@ -31,6 +32,7 @@ class Collectible:
         if not self.alive:
             return
         self.alive = False
+        play_sound("glug")
         game.add_score(self.points, self.rect.centerx, self.rect.y)
 
     def draw(self, surface, camera):

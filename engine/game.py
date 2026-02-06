@@ -1,3 +1,4 @@
+import asyncio
 import pygame
 import sys
 from settings import (
@@ -18,6 +19,7 @@ class Game:
 
     def __init__(self):
         pygame.init()
+        pygame.mixer.init(22050, -16, 1, 512)
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption(TITLE)
         self.clock = pygame.time.Clock()
@@ -67,7 +69,7 @@ class Game:
         else:
             self.state = STATE_LEVEL_COMPLETE
 
-    def run(self):
+    async def run(self):
         running = True
         while running:
             dt = self.clock.tick(FPS) / 1000.0
@@ -96,14 +98,15 @@ class Game:
                 self._update_level_complete()
 
             pygame.display.flip()
+            await asyncio.sleep(0)  # yield to browser event loop
 
         pygame.quit()
-        sys.exit()
 
     def _update_menu(self):
         if self.input.enter_pressed:
             self.new_game()
         self.menu.draw_title(self.screen)
+        self.input.touch.draw(self.screen, show_enter=True)
 
     def _update_playing(self, dt):
         self.level.update(dt, self.input)
@@ -111,13 +114,16 @@ class Game:
         self.level.draw(self.screen)
         self.hud.update(dt)
         self.hud.draw(self.screen, self.score, self.lives)
+        self.input.touch.draw(self.screen, show_enter=False)
 
     def _update_game_over(self):
         if self.input.enter_pressed:
             self.state = STATE_MENU
         self.menu.draw_game_over(self.screen, self.score)
+        self.input.touch.draw(self.screen, show_enter=True)
 
     def _update_level_complete(self):
         if self.input.enter_pressed:
             self.start_level(self.current_level_index)
         self.menu.draw_level_complete(self.screen, self.current_level_index, self.score)
+        self.input.touch.draw(self.screen, show_enter=True)

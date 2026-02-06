@@ -11,7 +11,7 @@ TILE_SIZE = 40
 
 # Player physics
 PLAYER_SPEED = 200          # px/s
-PLAYER_JUMP_VEL = -420      # px/s (negative = up)
+PLAYER_JUMP_VEL = -620      # px/s (negative = up)
 GRAVITY = 980               # px/s^2
 MAX_FALL_SPEED = 600        # px/s
 
@@ -36,6 +36,13 @@ BALL_HIT_SPEED = 350        # px/s
 BALL_FRICTION = 0.97        # per-frame multiplier
 BALL_GRAVITY = 400          # px/s^2
 STICK_RANGE = 50            # pixels from player center
+
+# Trash cans
+TRASH_CAN_POINTS = 100
+
+# Rat hit
+RAT_FLEE_SPEED = 300        # px/s when whacked
+RAT_HIT_POINTS = 25
 
 # Game states
 STATE_MENU = "MENU"
